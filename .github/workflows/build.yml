@@ -17,6 +17,14 @@ jobs:
         with:
           fetch-depth: 0
 
+      - name: Check version
+        run: |
+          if [[ "$GITHUB_REF" == refs/tags/v* ]]; then
+            ./scripts/check-version.sh "$GITHUB_REF_NAME"
+          else
+            ./scripts/check-version.sh
+          fi
+
       - name: Build universal app and zip
         run: ./scripts/package.sh
 
@@ -34,10 +42,15 @@ jobs:
     permissions:
       contents: write
     steps:
+      - uses: actions/checkout@v4
+
       - uses: actions/download-artifact@v4
         with:
           name: WindowFrames
           path: dist
+
+      - name: Release notes from CHANGELOG.md
+        run: ./scripts/release-notes.sh "$GITHUB_REF_NAME" > notes.md
 
       - name: Create GitHub release
         env:
@@ -46,4 +59,4 @@ jobs:
           gh release create "$GITHUB_REF_NAME" dist/* \
             --repo "$GITHUB_REPOSITORY" \
             --title "WindowFrames $GITHUB_REF_NAME" \
-            --notes "Download WindowFrames-*.zip, then follow the install steps in the README."
+            --notes-file notes.md

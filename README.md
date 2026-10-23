@@ -141,11 +141,37 @@ Updates**.
 | `./scripts/make-icon.sh` | Redraw `Resources/AppIcon.icns` and `docs/icon.png` |
 | `WF_SNAPSHOT_DIR=/tmp/shots build/WindowFrames.app/Contents/MacOS/WindowFrames` | Render every page of the window to PNG, light and dark, then quit |
 
-## Releases
+## Versions and releases
 
-Pushing a tag such as `v0.1.0` runs `.github/workflows/build.yml`. It builds a
-universal app on GitHub's macOS runner and attaches the zip to a GitHub
-release. Change the version in `VERSION` first.
+WindowFrames follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
+(`MAJOR.MINOR.PATCH`) and keeps its history in [CHANGELOG.md](CHANGELOG.md),
+in the [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) format.
+
+| Where | Value |
+|---|---|
+| `VERSION` file | The version, e.g. `0.4.0`. The single source of truth |
+| App (`CFBundleShortVersionString`) | Same as `VERSION` |
+| App build (`CFBundleVersion`) | Number of commits, so it always goes up |
+| Git tag | `v` + version, e.g. `v0.4.0` (annotated) |
+| GitHub release | `WindowFrames v0.4.0`, notes from that version's changelog section |
+
+Before 1.0.0, a new feature bumps MINOR and a fix bumps PATCH.
+
+To release:
+
+1. Move the `[Unreleased]` notes in `CHANGELOG.md` under a new
+   `## [X.Y.Z] - YYYY-MM-DD` heading, and update the compare links at the bottom.
+2. Set `VERSION` to `X.Y.Z`.
+3. Commit, then tag and push:
+   ```bash
+   ./scripts/check-version.sh vX.Y.Z
+   git tag -a vX.Y.Z -m "WindowFrames X.Y.Z"
+   git push origin main vX.Y.Z
+   ```
+
+The tag runs `.github/workflows/build.yml`. It checks that the tag matches
+`VERSION` and has a changelog section, builds a universal app on GitHub's
+macOS runner, and publishes the zip with notes from `scripts/release-notes.sh`.
 
 Release builds are signed ad hoc. To remove the Gatekeeper step for users,
 sign with a Developer ID (`SIGN_IDENTITY="Developer ID Application: …"`) and
