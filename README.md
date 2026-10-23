@@ -3,6 +3,20 @@
 A small macOS menu bar app that snaps the front window into halves, quarters
 and thirds with keyboard shortcuts. Free and open source (MIT).
 
+## Using it
+
+WindowFrames lives in the menu bar (the grid icon) and has no Dock icon.
+Click the icon for:
+
+- **Show WindowFrames**: opens the WindowFrames window. Click a layout tile
+  to arrange the front window of the app you were just using. The window
+  also has **Open at login** and **Check for Updates**.
+- Every layout, with its shortcut.
+- **Check for Updates…**, **About** and **Quit**.
+
+Opening WindowFrames again from Finder, Spotlight or Launchpad while it is
+running also brings up the window.
+
 Needs macOS 13 Ventura or later, on Apple silicon or Intel.
 
 ## Shortcuts
@@ -58,6 +72,9 @@ The script builds the app, copies it into `/Applications` (or
 
 ## Update
 
+**Check for Updates** (menu bar or window) asks GitHub for the latest
+release and offers a Download button when a newer version exists.
+
 - **Download:** quit WindowFrames, replace the app in Applications with the
   new one, and allow Accessibility again if shortcuts stop working.
 - **Source:** `git pull && ./scripts/install.sh`.
@@ -69,8 +86,9 @@ from the Accessibility list with the − button and add it again.
 
 ## Start at login
 
-**System Settings → General → Login Items → Open at Login → +**, then choose
-WindowFrames.
+Turn on **Open at login** in the WindowFrames window. If macOS asks, allow it
+under **System Settings → General → Login Items**. This works best with the
+app installed in Applications.
 
 ## Uninstall
 
@@ -83,8 +101,10 @@ Accessibility list.
 
 ## Privacy
 
-WindowFrames has no network code and collects nothing. It reads and sets the
-position and size of the focused window, and nothing else.
+WindowFrames collects nothing. It reads and sets the position and size of
+the focused window, and nothing else. Its only network request is to
+`api.github.com` for the latest release, and only when you click **Check for
+Updates**.
 
 ## Build commands
 

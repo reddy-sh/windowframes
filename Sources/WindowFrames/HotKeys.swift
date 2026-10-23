@@ -9,6 +9,20 @@ struct Shortcut {
     let menuKey: String
     let menuModifiers: NSEvent.ModifierFlags
 
+    /// Readable form, e.g. "⌃⌥←".
+    var display: String {
+        let key: String
+        switch keyCode {
+        case UInt32(kVK_LeftArrow): key = "←"
+        case UInt32(kVK_RightArrow): key = "→"
+        case UInt32(kVK_UpArrow): key = "↑"
+        case UInt32(kVK_DownArrow): key = "↓"
+        case UInt32(kVK_Return): key = "↩"
+        default: key = menuKey.uppercased()
+        }
+        return "⌃⌥" + key
+    }
+
     static func controlOption(_ keyCode: Int, _ menuKey: String) -> Shortcut {
         Shortcut(
             keyCode: UInt32(keyCode),

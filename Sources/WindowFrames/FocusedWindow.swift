@@ -6,12 +6,10 @@ import ApplicationServices
 struct FocusedWindow {
     let element: AXUIElement
 
-    static func current() -> FocusedWindow? {
-        guard let frontmost = NSWorkspace.shared.frontmostApplication,
-              frontmost.processIdentifier != ProcessInfo.processInfo.processIdentifier
-        else { return nil }
+    static func current(pid: pid_t) -> FocusedWindow? {
+        guard pid != ProcessInfo.processInfo.processIdentifier else { return nil }
 
-        let app = AXUIElementCreateApplication(frontmost.processIdentifier)
+        let app = AXUIElementCreateApplication(pid)
         var value: CFTypeRef?
         guard AXUIElementCopyAttributeValue(app, kAXFocusedWindowAttribute as CFString, &value) == .success,
               let window = value,
