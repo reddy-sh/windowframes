@@ -1,59 +1,58 @@
 import AppKit
 import Carbon
 
-/// A global keyboard shortcut.
-struct Shortcut {
-    let keyCode: UInt32
-    let carbonModifiers: UInt32
-    /// Key equivalent shown in the menu.
-    let menuKey: String
-    let menuModifiers: NSEvent.ModifierFlags
+/// A global keyboard shortcut: a virtual key code plus Carbon modifier bits.
+struct Shortcut: Codable, Hashable {
+    var keyCode: UInt32
+    var modifiers: UInt32
 
     /// Readable form, e.g. "⌃⌥←".
     var display: String {
-        let key: String
-        switch keyCode {
-        case UInt32(kVK_LeftArrow): key = "←"
-        case UInt32(kVK_RightArrow): key = "→"
-        case UInt32(kVK_UpArrow): key = "↑"
-        case UInt32(kVK_DownArrow): key = "↓"
-        case UInt32(kVK_Return): key = "↩"
-        default: key = menuKey.uppercased()
+        KeyNames.modifierSymbols(modifiers) + KeyNames.name(for: keyCode)
+    }
+
+    var menuKey: String { KeyNames.menuKey(for: keyCode) }
+
+    var menuModifiers: NSEvent.ModifierFlags {
+        var flags: NSEvent.ModifierFlags = []
+        if modifiers & UInt32(controlKey) != 0 { flags.insert(.control) }
+        if modifiers & UInt32(optionKey) != 0 { flags.insert(.option) }
+        if modifiers & UInt32(shiftKey) != 0 { flags.insert(.shift) }
+        if modifiers & UInt32(cmdKey) != 0 { flags.insert(.command) }
+        return flags
+    }
+
+    static func carbonModifiers(from flags: NSEvent.ModifierFlags) -> UInt32 {
+        var m: UInt32 = 0
+        if flags.contains(.control) { m |= UInt32(controlKey) }
+        if flags.contains(.option) { m |= UInt32(optionKey) }
+        if flags.contains(.shift) { m |= UInt32(shiftKey) }
+        if flags.contains(.command) { m |= UInt32(cmdKey) }
+        return m
+    }
+
+    /// A common shortcut this one takes over in every app, if any.
+    var systemConflict: String? {
+        let cmd = UInt32(cmdKey)
+        if modifiers == cmd {
+            let names: [Int: String] = [
+                kVK_ANSI_Q: "Quit", kVK_ANSI_W: "Close window", kVK_ANSI_H: "Hide",
+                kVK_ANSI_M: "Minimise", kVK_ANSI_N: "New", kVK_ANSI_T: "New tab",
+                kVK_ANSI_C: "Copy", kVK_ANSI_V: "Paste", kVK_ANSI_X: "Cut", kVK_ANSI_Z: "Undo",
+                kVK_ANSI_A: "Select all", kVK_ANSI_S: "Save", kVK_ANSI_F: "Find",
+                kVK_ANSI_P: "Print", kVK_ANSI_O: "Open", kVK_Tab: "App switcher",
+                kVK_Space: "Spotlight", kVK_ANSI_Comma: "Settings",
+            ]
+            if let name = names[Int(keyCode)] { return "\(display) (\(name))" }
+            let digits = [kVK_ANSI_1, kVK_ANSI_2, kVK_ANSI_3, kVK_ANSI_4, kVK_ANSI_5,
+                          kVK_ANSI_6, kVK_ANSI_7, kVK_ANSI_8, kVK_ANSI_9]
+            if digits.contains(Int(keyCode)) { return "\(display) (switch tabs)" }
+            let arrows = [kVK_LeftArrow, kVK_RightArrow, kVK_UpArrow, kVK_DownArrow]
+            if arrows.contains(Int(keyCode)) { return "\(display) (move to line or document start/end)" }
         }
-        return "⌃⌥" + key
+        if modifiers == cmd | UInt32(shiftKey), keyCode == UInt32(kVK_ANSI_Z) { return "\(display) (Redo)" }
+        return nil
     }
-
-    static func controlOption(_ keyCode: Int, _ menuKey: String) -> Shortcut {
-        Shortcut(
-            keyCode: UInt32(keyCode),
-            carbonModifiers: UInt32(controlKey | optionKey),
-            menuKey: menuKey,
-            menuModifiers: [.control, .option]
-        )
-    }
-
-    private static func function(_ key: Int) -> String {
-        String(Character(UnicodeScalar(UInt32(key))!))
-    }
-
-    /// Default shortcuts: Control + Option + key.
-    static let defaults: [WindowAction: Shortcut] = [
-        .leftHalf: .controlOption(kVK_LeftArrow, function(NSLeftArrowFunctionKey)),
-        .rightHalf: .controlOption(kVK_RightArrow, function(NSRightArrowFunctionKey)),
-        .topHalf: .controlOption(kVK_UpArrow, function(NSUpArrowFunctionKey)),
-        .bottomHalf: .controlOption(kVK_DownArrow, function(NSDownArrowFunctionKey)),
-        .topLeft: .controlOption(kVK_ANSI_U, "u"),
-        .topRight: .controlOption(kVK_ANSI_I, "i"),
-        .bottomLeft: .controlOption(kVK_ANSI_J, "j"),
-        .bottomRight: .controlOption(kVK_ANSI_K, "k"),
-        .leftThird: .controlOption(kVK_ANSI_D, "d"),
-        .centerThird: .controlOption(kVK_ANSI_F, "f"),
-        .rightThird: .controlOption(kVK_ANSI_G, "g"),
-        .leftTwoThirds: .controlOption(kVK_ANSI_E, "e"),
-        .rightTwoThirds: .controlOption(kVK_ANSI_T, "t"),
-        .maximize: .controlOption(kVK_Return, "\r"),
-        .center: .controlOption(kVK_ANSI_C, "c"),
-    ]
 }
 
 /// Registers global hot keys with the Carbon Event Manager. These work
@@ -75,7 +74,7 @@ final class HotKeyCenter {
         var ref: EventHotKeyRef?
         let hotKeyID = EventHotKeyID(signature: Self.signature, id: id)
         let status = RegisterEventHotKey(
-            shortcut.keyCode, shortcut.carbonModifiers, hotKeyID,
+            shortcut.keyCode, shortcut.modifiers, hotKeyID,
             GetApplicationEventTarget(), 0, &ref
         )
         guard status == noErr, let ref else { return false }

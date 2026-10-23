@@ -1,5 +1,6 @@
 import AppKit
 import ApplicationServices
+import Carbon
 import ServiceManagement
 
 /// Shared state for the menu bar menu and the WindowFrames window.
@@ -20,14 +21,25 @@ final class AppModel: ObservableObject {
     @Published private(set) var launchAtLogin = false
     @Published private(set) var launchAtLoginNote: String?
     @Published private(set) var update: UpdateState = .idle
-    @Published var unavailable: Set<WindowAction> = []
+
+    @Published private(set) var bindings: [WindowAction: Shortcut] = [:]
+    /// Shortcuts another app already owns, so they couldn't be registered.
+    @Published private(set) var unavailable: Set<WindowAction> = []
+    @Published private(set) var recording: WindowAction?
+    @Published private(set) var shortcutNote: String?
 
     let version = Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "dev"
 
+    /// Called when a command can't run because Accessibility is off.
+    var onNeedsPermission: (() -> Void)?
+
+    private let hotKeys = HotKeyCenter()
+    private let history = RestoreHistory()
     /// The last app other than WindowFrames that was in front. Layouts chosen
     /// in the WindowFrames window apply to this app's front window.
     private var lastOtherApp: NSRunningApplication?
     private var activationObserver: NSObjectProtocol?
+    private var keyMonitor: Any?
     private var timer: Timer?
 
     init() {
@@ -55,6 +67,7 @@ final class AppModel: ObservableObject {
         if let activationObserver {
             NSWorkspace.shared.notificationCenter.removeObserver(activationObserver)
         }
+        if let keyMonitor { NSEvent.removeMonitor(keyMonitor) }
     }
 
     var targetApp: NSRunningApplication? {
@@ -82,9 +95,130 @@ final class AppModel: ObservableObject {
         }
     }
 
+    // MARK: Shortcuts
+
+    /// Loads saved shortcuts. On first run, copies Magnet's shortcuts when
+    /// Magnet has been set up on this Mac, otherwise uses the defaults.
+    func loadShortcuts() {
+        if ShortcutStore.hasSaved {
+            bindings = ShortcutStore.load()
+        } else if let magnet = ShortcutStore.magnetShortcuts() {
+            bindings = magnet
+            ShortcutStore.save(magnet)
+            shortcutNote = "Copied \(magnet.count) shortcuts from Magnet."
+        } else {
+            bindings = ShortcutStore.builtIn
+        }
+        registerShortcuts()
+    }
+
+    func importFromMagnet() {
+        guard let magnet = ShortcutStore.magnetShortcuts() else {
+            shortcutNote = "Magnet's settings weren't found on this Mac."
+            return
+        }
+        setBindings(magnet)
+        shortcutNote = "Copied \(magnet.count) shortcuts from Magnet."
+    }
+
+    func restoreDefaults() {
+        setBindings(ShortcutStore.builtIn)
+        shortcutNote = "Shortcuts reset to the WindowFrames defaults."
+    }
+
+    func clearShortcut(_ action: WindowAction) {
+        var updated = bindings
+        updated[action] = nil
+        setBindings(updated)
+        shortcutNote = "\(action.title) has no shortcut now."
+    }
+
+    /// Waits for the next key press in the WindowFrames window and assigns
+    /// it to `action`. Global shortcuts are paused meanwhile, so pressing an
+    /// existing shortcut records it instead of moving a window.
+    func startRecording(_ action: WindowAction) {
+        stopRecording()
+        recording = action
+        shortcutNote = "Press the new shortcut for \(action.title). Esc cancels."
+        hotKeys.unregisterAll()
+        keyMonitor = NSEvent.addLocalMonitorForEvents(matching: .keyDown) { [weak self] event in
+            guard let self, self.recording != nil else { return event }
+            self.handleRecorded(event)
+            return nil
+        }
+    }
+
+    func cancelRecording() {
+        guard recording != nil else { return }
+        stopRecording()
+        shortcutNote = nil
+        registerShortcuts()
+    }
+
+    private func handleRecorded(_ event: NSEvent) {
+        guard let action = recording else { return }
+        let keyCode = UInt32(event.keyCode)
+        let flags = event.modifierFlags.intersection([.control, .option, .shift, .command])
+
+        if keyCode == UInt32(kVK_Escape), flags.isEmpty {
+            cancelRecording()
+            return
+        }
+        if flags.subtracting(.shift).isEmpty, !KeyNames.isFunctionKey(keyCode) {
+            shortcutNote = "Use at least one of ⌃ ⌥ ⌘ with the key, or a function key. Esc cancels."
+            NSSound.beep()
+            return
+        }
+
+        let shortcut = Shortcut(keyCode: keyCode, modifiers: Shortcut.carbonModifiers(from: flags))
+        var updated = bindings
+        var note = "\(action.title): \(shortcut.display)."
+        if let previous = updated.first(where: { $0.key != action && $0.value == shortcut })?.key {
+            updated[previous] = nil
+            note += " Removed it from \(previous.title)."
+        }
+        if let conflict = shortcut.systemConflict {
+            note += " This replaces \(conflict) in every app."
+        }
+        updated[action] = shortcut
+        stopRecording()
+        setBindings(updated)
+        shortcutNote = note
+    }
+
+    private func stopRecording() {
+        if let keyMonitor { NSEvent.removeMonitor(keyMonitor) }
+        keyMonitor = nil
+        recording = nil
+    }
+
+    private func setBindings(_ updated: [WindowAction: Shortcut]) {
+        bindings = updated
+        ShortcutStore.save(updated)
+        registerShortcuts()
+    }
+
+    private func registerShortcuts() {
+        hotKeys.unregisterAll()
+        var failed: Set<WindowAction> = []
+        for action in WindowAction.allCases {
+            guard let shortcut = bindings[action] else { continue }
+            let ok = hotKeys.register(shortcut) { [weak self] in
+                guard let self else { return }
+                if !self.perform(action, bringToFront: false) { self.onNeedsPermission?() }
+            }
+            if !ok { failed.insert(action) }
+        }
+        unavailable = failed
+    }
+
+    func unregisterShortcuts() {
+        hotKeys.unregisterAll()
+    }
+
     // MARK: Window actions
 
-    /// Arranges the target app's front window. Returns false when
+    /// Runs `action` on the target app's front window. Returns false when
     /// Accessibility permission is missing, so the caller can explain why.
     @discardableResult
     func perform(_ action: WindowAction, bringToFront: Bool) -> Bool {
@@ -94,16 +228,33 @@ final class AppModel: ObservableObject {
         }
         guard let app = targetApp,
               let window = FocusedWindow.current(pid: app.processIdentifier),
-              let current = window.frame,
-              let screen = Screens.visibleFrameAX(containing: current)
+              let current = window.frame
         else {
             NSSound.beep()
             return true
         }
-        if bringToFront {
-            app.activate(options: [])
+
+        let target: CGRect?
+        switch action {
+        case .restore:
+            target = history.takeOriginal(window.element)
+        case .nextDisplay:
+            target = Screens.frame(current, movedBy: 1)
+        case .previousDisplay:
+            target = Screens.frame(current, movedBy: -1)
+        default:
+            target = Screens.visibleFrameAX(containing: current).flatMap { action.frame(for: current, in: $0) }
         }
-        if !window.setFrame(action.frame(for: current, in: screen)) {
+        guard let target else {
+            NSSound.beep()
+            return true
+        }
+
+        if action != .restore { history.willMove(window.element, from: current) }
+        if bringToFront { app.activate(options: []) }
+        if window.setFrame(target) {
+            if action != .restore { history.didMove(window.element, to: window.frame ?? target) }
+        } else {
             NSSound.beep()
         }
         return true

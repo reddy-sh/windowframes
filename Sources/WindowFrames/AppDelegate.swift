@@ -1,9 +1,8 @@
 import AppKit
 import SwiftUI
 
-final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
+final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate, NSWindowDelegate {
     private var statusItem: NSStatusItem!
-    private let hotKeys = HotKeyCenter()
     private let model = AppModel()
     private var window: NSWindow?
 
@@ -16,13 +15,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             button.toolTip = "WindowFrames"
         }
 
-        var unavailable: Set<WindowAction> = []
-        for action in WindowAction.allCases {
-            guard let shortcut = Shortcut.defaults[action] else { continue }
-            let ok = hotKeys.register(shortcut) { [weak self] in self?.perform(action) }
-            if !ok { unavailable.insert(action) }
-        }
-        model.unavailable = unavailable
+        model.onNeedsPermission = { [weak self] in self?.showWindow() }
+        model.loadShortcuts()
 
         let menu = NSMenu()
         menu.delegate = self
@@ -42,7 +36,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     }
 
     func applicationWillTerminate(_ notification: Notification) {
-        hotKeys.unregisterAll()
+        model.unregisterShortcuts()
     }
 
     // MARK: Window
@@ -55,13 +49,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
                 quit: { NSApp.terminate(nil) }
             )
             let newWindow = NSWindow(
-                contentRect: NSRect(x: 0, y: 0, width: 520, height: 640),
+                contentRect: NSRect(x: 0, y: 0, width: 600, height: 720),
                 styleMask: [.titled, .closable, .miniaturizable, .resizable],
                 backing: .buffered,
                 defer: false
             )
             newWindow.title = "WindowFrames"
             newWindow.isReleasedWhenClosed = false
+            newWindow.delegate = self
             newWindow.contentView = NSHostingView(rootView: view)
             newWindow.setFrameAutosaveName("WindowFramesMain")
             if !newWindow.setFrameUsingName("WindowFramesMain") {
@@ -72,6 +67,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         model.refresh()
         NSApp.activate(ignoringOtherApps: true)
         window?.makeKeyAndOrderFront(nil)
+    }
+
+    func windowWillClose(_ notification: Notification) {
+        model.cancelRecording()
+    }
+
+    func windowDidResignKey(_ notification: Notification) {
+        model.cancelRecording()
     }
 
     // MARK: Menu
@@ -96,10 +99,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             for action in group {
                 let entry = item(action.title, #selector(menuAction(_:)))
                 entry.representedObject = action.rawValue
-                if let shortcut = Shortcut.defaults[action], !model.unavailable.contains(action) {
+                if let shortcut = model.bindings[action], !model.unavailable.contains(action) {
                     entry.keyEquivalent = shortcut.menuKey
                     entry.keyEquivalentModifierMask = shortcut.menuModifiers
-                } else {
+                } else if model.bindings[action] != nil {
                     entry.toolTip = "Shortcut in use by another app"
                 }
                 menu.addItem(entry)
@@ -107,13 +110,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         }
 
         menu.addItem(.separator())
+        menu.addItem(item("Change Shortcuts…", #selector(showWindow)))
         menu.addItem(item("Check for Updates…", #selector(checkForUpdates)))
         menu.addItem(item("About WindowFrames", #selector(showAbout)))
-        menu.addItem(item("Quit WindowFrames", #selector(quit), key: "q"))
+        menu.addItem(item("Quit WindowFrames", #selector(quit)))
     }
 
-    private func item(_ title: String, _ selector: Selector, key: String = "") -> NSMenuItem {
-        let entry = NSMenuItem(title: title, action: selector, keyEquivalent: key)
+    private func item(_ title: String, _ selector: Selector) -> NSMenuItem {
+        let entry = NSMenuItem(title: title, action: selector, keyEquivalent: "")
         entry.target = self
         return entry
     }
@@ -121,7 +125,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     @objc private func menuAction(_ sender: NSMenuItem) {
         guard let raw = sender.representedObject as? String,
               let action = WindowAction(rawValue: raw) else { return }
-        perform(action)
+        if !model.perform(action, bringToFront: false) {
+            showWindow()
+        }
     }
 
     @objc private func checkForUpdates() {
@@ -144,11 +150,5 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
 
     @objc private func quit() {
         NSApp.terminate(nil)
-    }
-
-    private func perform(_ action: WindowAction) {
-        if !model.perform(action, bringToFront: false) {
-            showWindow()
-        }
     }
 }

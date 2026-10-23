@@ -19,25 +19,42 @@ running also brings up the window.
 
 Needs macOS 13 Ventura or later, on Apple silicon or Intel.
 
-## Shortcuts
+## Commands and shortcuts
 
-All shortcuts are **Control + Option** (⌃⌥) plus a key. The same actions are
-in the menu bar menu (the grid icon).
+Every command is in the menu bar menu and in the window. The default
+shortcuts are **Control + Option** (⌃⌥) plus a key:
 
-| Action | Key |
+| Command | Default |
 |---|---|
-| Left / right half | ← / → |
-| Top / bottom half | ↑ / ↓ |
-| Top left / top right quarter | U / I |
-| Bottom left / bottom right quarter | J / K |
-| Left / centre / right third | D / F / G |
-| Left / right two thirds | E / T |
-| Maximise | Return |
-| Centre | C |
+| Left / right half | ⌃⌥← / ⌃⌥→ |
+| Top / bottom half | ⌃⌥↑ / ⌃⌥↓ |
+| Top left / top right quarter | ⌃⌥U / ⌃⌥I |
+| Bottom left / bottom right quarter | ⌃⌥J / ⌃⌥K |
+| Left / centre / right third | ⌃⌥D / ⌃⌥F / ⌃⌥G |
+| Left / centre / right two thirds | ⌃⌥E / ⌃⌥R / ⌃⌥T |
+| Next / previous display | ⌃⌥⌘→ / ⌃⌥⌘← |
+| Maximise | ⌃⌥↩ |
+| Centre | ⌃⌥C |
+| Restore (size and place before WindowFrames moved it) | ⌃⌥⌫ |
 
-Each action uses the screen the window is mostly on, and leaves room for the
-menu bar and the Dock. If another app already owns a shortcut, that action
-still works from the menu.
+Each command uses the screen the window is mostly on, and leaves room for the
+menu bar and the Dock. On a portrait screen, thirds split the height.
+
+### Change shortcuts
+
+Open the window (**Show WindowFrames** or **Change Shortcuts…** in the menu),
+then in **Keyboard shortcuts**:
+
+- Click a shortcut and press the new keys. Use at least one of ⌃ ⌥ ⌘, or a
+  function key. Esc cancels.
+- Click ⓧ to remove a shortcut.
+- **Copy from Magnet** copies the shortcuts you set in Magnet, if Magnet is
+  set up on this Mac. WindowFrames does this by itself on first launch.
+- **Reset to Defaults** goes back to the table above.
+
+A warning sign means another app already owns that shortcut (pick another),
+or that it takes over a common shortcut such as ⌘Q or ⌘W in every app.
+Quit Magnet before using the same shortcuts in WindowFrames.
 
 ## Install
 
@@ -102,7 +119,8 @@ Accessibility list.
 ## Privacy
 
 WindowFrames collects nothing. It reads and sets the position and size of
-the focused window, and nothing else. Its only network request is to
+the focused window, and nothing else. **Copy from Magnet** reads only
+Magnet's command list from its settings file. Its only network request is to
 `api.github.com` for the latest release, and only when you click **Check for
 Updates**.
 
