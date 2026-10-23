@@ -10,6 +10,9 @@ struct FocusedWindow {
         guard pid != ProcessInfo.processInfo.processIdentifier else { return nil }
 
         let app = AXUIElementCreateApplication(pid)
+        // An app that has stopped responding would otherwise block
+        // WindowFrames for the 6 s system default.
+        AXUIElementSetMessagingTimeout(app, 1.0)
         var value: CFTypeRef?
         guard AXUIElementCopyAttributeValue(app, kAXFocusedWindowAttribute as CFString, &value) == .success,
               let window = value,
