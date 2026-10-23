@@ -8,5 +8,6 @@ VERSION="$(tr -d '[:space:]' < VERSION)"
 ZIP="build/WindowFrames-$VERSION.zip"
 rm -f "$ZIP"
 ditto -c -k --keepParent build/WindowFrames.app "$ZIP"
-shasum -a 256 "$ZIP" | tee "$ZIP.sha256"
+# Bare file name, so `shasum -a 256 -c` works next to the downloaded zip.
+(cd build && shasum -a 256 "WindowFrames-$VERSION.zip" | tee "WindowFrames-$VERSION.zip.sha256")
 echo "Packaged $ZIP"
