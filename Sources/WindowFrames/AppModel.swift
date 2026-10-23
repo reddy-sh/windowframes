@@ -16,6 +16,9 @@ final class AppModel: ObservableObject {
     /// GitHub repository that publishes releases.
     static let repository = "reddy-sh/windowframes"
 
+    /// The company portal.
+    static let website = URL(string: "https://reddy.sh")!
+
     @Published private(set) var isTrusted = false
     @Published private(set) var targetAppName: String?
     @Published private(set) var launchAtLogin = false

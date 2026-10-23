@@ -311,9 +311,21 @@ private struct AboutPane: View {
                 .frame(minHeight: 22)
 
             Spacer()
-            Text("Free and open source under the MIT licence.")
-                .font(.caption)
-                .foregroundStyle(.tertiary)
+            VStack(spacing: 4) {
+                Button {
+                    NSWorkspace.shared.open(AppModel.website)
+                } label: {
+                    Text("Made by ") + Text("reddy.sh").foregroundColor(.accentColor)
+                }
+                .buttonStyle(.plain)
+                .font(.callout)
+                .foregroundStyle(.secondary)
+                .help("Open https://reddy.sh")
+                .accessibilityLabel("Made by reddy.sh. Opens the reddy.sh website.")
+                Text("© 2026 reddy.sh · Free and open source under the MIT licence.")
+                    .font(.caption)
+                    .foregroundStyle(.tertiary)
+            }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .padding(24)

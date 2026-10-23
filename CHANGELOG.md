@@ -7,10 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.4.1] - 2026-10-23
+
 ### Added
 
+- About page links to the company portal, [reddy.sh](https://reddy.sh).
 - Release notes for each GitHub release now come from this changelog.
 - Releases fail if the tag doesn't match the `VERSION` file.
+
+### Changed
+
+- Copyright line reads "© 2026 reddy.sh" in the app and About page.
 
 ## [0.4.0] - 2026-10-23
 
@@ -69,7 +76,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Control + Option keyboard shortcuts and a menu bar menu.
 - Works across several displays and leaves room for the menu bar and Dock.
 
-[Unreleased]: https://github.com/reddy-sh/windowframes/compare/v0.4.0...HEAD
+[Unreleased]: https://github.com/reddy-sh/windowframes/compare/v0.4.1...HEAD
+[0.4.1]: https://github.com/reddy-sh/windowframes/compare/v0.4.0...v0.4.1
 [0.4.0]: https://github.com/reddy-sh/windowframes/compare/v0.3.0...v0.4.0
 [0.3.0]: https://github.com/reddy-sh/windowframes/compare/v0.2.0...v0.3.0
 [0.2.0]: https://github.com/reddy-sh/windowframes/compare/v0.1.0...v0.2.0

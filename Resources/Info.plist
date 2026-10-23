@@ -29,7 +29,7 @@
 	<key>LSUIElement</key>
 	<true/>
 	<key>NSHumanReadableCopyright</key>
-	<string>MIT License. WindowFrames contributors.</string>
+	<string>© 2026 reddy.sh. MIT licence. https://reddy.sh</string>
 	<key>NSPrincipalClass</key>
 	<string>NSApplication</string>
 </dict>

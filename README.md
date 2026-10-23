@@ -181,3 +181,5 @@ notarise with `xcrun notarytool`. That needs a paid Apple Developer account.
 
 MIT. WindowFrames is an independent project, written from Apple's public
 APIs. It isn't affiliated with any other window manager.
+
+WindowFrames is made by [reddy.sh](https://reddy.sh).
