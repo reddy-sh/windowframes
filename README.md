@@ -1,3 +1,5 @@
+<p align="center"><img src="docs/icon.png" width="128" height="128" alt="WindowFrames icon"></p>
+
 # WindowFrames
 
 A small macOS menu bar app that snaps the front window into halves, quarters
@@ -8,9 +10,13 @@ and thirds with keyboard shortcuts. Free and open source (MIT).
 WindowFrames lives in the menu bar (the grid icon) and has no Dock icon.
 Click the icon for:
 
-- **Show WindowFrames**: opens the WindowFrames window. Click a layout tile
-  to arrange the front window of the app you were just using. The window
-  also has **Open at login** and **Check for Updates**.
+- **Show WindowFrames**: opens the WindowFrames window, with a sidebar:
+  - **Layouts**: click a tile to arrange the front window of the app you
+    were just using.
+  - **Shortcuts**: change, remove, reset or copy shortcuts from Magnet. The
+    badge counts shortcuts that need attention.
+  - **General**: Accessibility status and **Open at login**.
+  - **About**: version, **Check for Updates** and the GitHub page.
 - Every layout, with its shortcut.
 - **Check for Updates…**, **About** and **Quit**.
 
@@ -43,7 +49,7 @@ menu bar and the Dock. On a portrait screen, thirds split the height.
 ### Change shortcuts
 
 Open the window (**Show WindowFrames** or **Change Shortcuts…** in the menu),
-then in **Keyboard shortcuts**:
+then choose **Shortcuts** in the sidebar:
 
 - Click a shortcut and press the new keys. Use at least one of ⌃ ⌥ ⌘, or a
   function key. Esc cancels.
@@ -132,6 +138,8 @@ Updates**.
 | `ARCHS=universal ./scripts/build-app.sh` | Apple silicon + Intel app (needs Xcode) |
 | `./scripts/package.sh` | `build/WindowFrames-<version>.zip` plus a SHA-256 file |
 | `swift run` | Run without an app bundle (Accessibility is then granted to your terminal) |
+| `./scripts/make-icon.sh` | Redraw `Resources/AppIcon.icns` and `docs/icon.png` |
+| `WF_SNAPSHOT_DIR=/tmp/shots build/WindowFrames.app/Contents/MacOS/WindowFrames` | Render every page of the window to PNG, light and dark, then quit |
 
 ## Releases
 

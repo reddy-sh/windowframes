@@ -11,6 +11,11 @@ struct Shortcut: Codable, Hashable {
         KeyNames.modifierSymbols(modifiers) + KeyNames.name(for: keyCode)
     }
 
+    /// Each modifier symbol and the key name, for drawing keycaps.
+    var parts: [String] {
+        KeyNames.modifierSymbols(modifiers).map { String($0) } + [KeyNames.name(for: keyCode)]
+    }
+
     var menuKey: String { KeyNames.menuKey(for: keyCode) }
 
     var menuModifiers: NSEvent.ModifierFlags {

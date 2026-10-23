@@ -1,5 +1,13 @@
 import CoreGraphics
 
+/// A titled group of commands, used by the menu, the layouts page and the
+/// shortcut list.
+struct ActionGroup: Identifiable {
+    let title: String
+    let actions: [WindowAction]
+    var id: String { title }
+}
+
 /// A window command. Geometry is computed in the Accessibility coordinate
 /// space: origin at the top-left of the primary display, y grows downwards.
 enum WindowAction: String, CaseIterable, Codable {
@@ -34,14 +42,13 @@ enum WindowAction: String, CaseIterable, Codable {
         }
     }
 
-    /// Menu and settings sections, in display order.
-    static let groups: [[WindowAction]] = [
-        [.leftHalf, .rightHalf, .topHalf, .bottomHalf],
-        [.topLeft, .topRight, .bottomLeft, .bottomRight],
-        [.leftThird, .centerThird, .rightThird],
-        [.leftTwoThirds, .centerTwoThirds, .rightTwoThirds],
-        [.nextDisplay, .previousDisplay],
-        [.maximize, .center, .restore],
+    static let groups: [ActionGroup] = [
+        ActionGroup(title: "Halves", actions: [.leftHalf, .rightHalf, .topHalf, .bottomHalf]),
+        ActionGroup(title: "Quarters", actions: [.topLeft, .topRight, .bottomLeft, .bottomRight]),
+        ActionGroup(title: "Thirds", actions: [.leftThird, .centerThird, .rightThird]),
+        ActionGroup(title: "Two thirds", actions: [.leftTwoThirds, .centerTwoThirds, .rightTwoThirds]),
+        ActionGroup(title: "Displays", actions: [.nextDisplay, .previousDisplay]),
+        ActionGroup(title: "Size and position", actions: [.maximize, .center, .restore]),
     ]
 
     /// SF Symbol for commands that have no fixed target area.

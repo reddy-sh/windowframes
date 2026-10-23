@@ -99,7 +99,7 @@ final class AppModel: ObservableObject {
 
     /// Loads saved shortcuts. On first run, copies Magnet's shortcuts when
     /// Magnet has been set up on this Mac, otherwise uses the defaults.
-    func loadShortcuts() {
+    func loadShortcuts(register: Bool = true) {
         if ShortcutStore.hasSaved {
             bindings = ShortcutStore.load()
         } else if let magnet = ShortcutStore.magnetShortcuts() {
@@ -109,7 +109,23 @@ final class AppModel: ObservableObject {
         } else {
             bindings = ShortcutStore.builtIn
         }
-        registerShortcuts()
+        if register { registerShortcuts() }
+    }
+
+    /// Why the shortcut for `action` needs attention, if it does.
+    func warning(for action: WindowAction) -> String? {
+        guard let shortcut = bindings[action] else { return nil }
+        if unavailable.contains(action) {
+            return "Another app already uses \(shortcut.display). Pick a different shortcut."
+        }
+        if let conflict = shortcut.systemConflict {
+            return "Replaces \(conflict) in every app."
+        }
+        return nil
+    }
+
+    var warningCount: Int {
+        WindowAction.allCases.filter { warning(for: $0) != nil }.count
     }
 
     func importFromMagnet() {

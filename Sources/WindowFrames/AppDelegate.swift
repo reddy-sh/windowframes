@@ -7,11 +7,15 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate, NSWind
     private var window: NSWindow?
 
     func applicationDidFinishLaunching(_ notification: Notification) {
+        if let directory = Snapshot.requestedDirectory {
+            model.loadShortcuts(register: false)
+            Snapshot.run(model: model, into: directory)
+            return
+        }
+
         statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
         if let button = statusItem.button {
-            let image = NSImage(systemSymbolName: "rectangle.split.2x2", accessibilityDescription: "WindowFrames")
-            image?.isTemplate = true
-            button.image = image
+            button.image = StatusIcon.make()
             button.toolTip = "WindowFrames"
         }
 
@@ -49,17 +53,21 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate, NSWind
                 quit: { NSApp.terminate(nil) }
             )
             let newWindow = NSWindow(
-                contentRect: NSRect(x: 0, y: 0, width: 600, height: 720),
-                styleMask: [.titled, .closable, .miniaturizable, .resizable],
+                contentRect: NSRect(x: 0, y: 0, width: 880, height: 640),
+                styleMask: [.titled, .closable, .miniaturizable, .resizable, .fullSizeContentView],
                 backing: .buffered,
                 defer: false
             )
             newWindow.title = "WindowFrames"
+            newWindow.titlebarAppearsTransparent = true
+            newWindow.toolbar = NSToolbar(identifier: "WindowFramesToolbar")
+            newWindow.toolbarStyle = .unified
+            newWindow.contentMinSize = NSSize(width: 760, height: 540)
             newWindow.isReleasedWhenClosed = false
             newWindow.delegate = self
             newWindow.contentView = NSHostingView(rootView: view)
-            newWindow.setFrameAutosaveName("WindowFramesMain")
-            if !newWindow.setFrameUsingName("WindowFramesMain") {
+            newWindow.setFrameAutosaveName("WindowFramesMainV2")
+            if !newWindow.setFrameUsingName("WindowFramesMainV2") {
                 newWindow.center()
             }
             window = newWindow
@@ -96,7 +104,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate, NSWind
 
         for (index, group) in WindowAction.groups.enumerated() {
             if index > 0 { menu.addItem(.separator()) }
-            for action in group {
+            for action in group.actions {
                 let entry = item(action.title, #selector(menuAction(_:)))
                 entry.representedObject = action.rawValue
                 if let shortcut = model.bindings[action], !model.unavailable.contains(action) {
